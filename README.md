@@ -66,6 +66,7 @@ curl -F "file=@backend/HarryLatest.pdf" http://127.0.0.1:8000/analyze
 
 | Status | Meaning |
 | --- | --- |
+| 429 | Both Groq models reached a rate limit. Per-minute limits clear quickly, and daily limits can take hours |
 | 413 | File is over 10 MB |
 | 415 | File isn't a PDF or DOCX |
 | 422 | File is corrupt, password-protected, or has no extractable text (for example, a scanned resume) |
@@ -84,7 +85,7 @@ Returns 404 if that `resume_id` hasn't been stored.
 
 ### HR profile
 
-A resume doesn't cover questions like hometown, weakness or salary expectations. To answer them, fill in `profiles/<resume_id>.md`. The answers apply only to that resume, and blank lines get "I don't have enough information to answer that." rather than a guess. Anything you write there is public if the repo is public.
+A resume doesn't cover questions like hometown, weakness or salary expectations. To answer them, fill in `profiles/<resume_id>.md`. The answers apply only to that resume. Blank lines still get an answer: general questions, such as strengths or motivation, are reasoned from the resume. Personal facts, such as hometown or salary, and stories, such as a past conflict, are never made up: they get a general answer that points to the contact email. Anything you write there is public if the repo is public.
 
 ## Project layout
 

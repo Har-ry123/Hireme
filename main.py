@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from groq import GroqError
+from groq import GroqError, RateLimitError
 
 # An explicit path, because load_dotenv() would otherwise search parent folders and could load another project's keys
 load_dotenv(Path(__file__).parent / ".env")
@@ -19,6 +19,7 @@ from schemas import AnalyzeResponse, ChatRequest
 logger = logging.getLogger(__name__)
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+RATE_LIMIT_MESSAGE = "The AI has reached its usage limit for now. Please try again later."
 
 app = FastAPI(title="HireMeAI API")
 
@@ -56,6 +57,8 @@ def analyze_resume(file: UploadFile = File(...)):
     except KeyError:
         logger.exception("Missing configuration")
         raise HTTPException(status_code=503, detail="The analysis service is not configured.")
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail=RATE_LIMIT_MESSAGE)
     except (GroqError, llm.AnalysisError):
         logger.exception("Resume analysis failed")
         raise HTTPException(status_code=502, detail="The analysis service failed. Try again.")
@@ -96,6 +99,8 @@ def chat(request: ChatRequest):
     except KeyError:
         logger.exception("Missing configuration")
         raise HTTPException(status_code=503, detail="The analysis service is not configured.")
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail=RATE_LIMIT_MESSAGE)
     except GroqError:
         logger.exception("Chat answer failed")
         raise HTTPException(status_code=502, detail="The analysis service failed. Try again.")
