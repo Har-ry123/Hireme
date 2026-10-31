@@ -32,6 +32,16 @@ The API runs at http://127.0.0.1:8000, with interactive docs at http://127.0.0.1
 
 The first upload takes longer because the embedding model (about 70 MB) is downloaded and cached.
 
+To run the frontend, use a second terminal. It expects the API at http://127.0.0.1:8000 unless `VITE_API_URL` says otherwise.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The site runs at http://localhost:5173.
+
 ## API
 
 ### `POST /analyze`
@@ -81,14 +91,28 @@ Returns `{"answer": "..."}`, or 404 if that `resume_id` hasn't been stored.
 | `llm.py` | Groq calls |
 | `vector_store.py` | Embeddings (fastembed) and Qdrant storage and search |
 | `schemas.py` | Pydantic request and response models |
+| `frontend/` | React chat interface (Vite) |
 | `backend/main.py` | Earlier prototype, not used by the app |
 
 ## Deployment
 
-The code comments assume Render for this backend and Vercel for the frontend. Neither is configured in this repo yet. On Render, set the `.env` variables in the service's environment, and use this start command:
+The backend runs on Render and the frontend on Vercel.
 
-```bash
-uvicorn main:app --host 0.0.0.0 --port $PORT
-```
+### Backend (Render)
 
-`backend/requirements.txt` lists the same dependencies as `pyproject.toml` for hosts that install with pip.
+| Setting | Value |
+| --- | --- |
+| Root Directory | Leave blank, so that the root `main.py` runs and not `backend/main.py` |
+| Build Command | `pip install -r backend/requirements.txt` |
+| Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| Environment | `GROQ_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY` |
+
+### Frontend (Vercel)
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `frontend` |
+| Framework Preset | Vite |
+| Environment | `VITE_API_URL` set to your Render URL |
+
+To open the site on one resume so that visitors can chat without uploading, also set `VITE_DEFAULT_RESUME_ID` to the `resume_id` from `POST /analyze`, and `VITE_CANDIDATE_NAME` to the name to show. Redeploy after changing any `VITE_` variable, because they're built into the site.
