@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, FileText, Folder, Mail, Sparkles, UserRound, Wifi } from "lucide-react";
 import { askQuestion } from "./api.js";
-import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS } from "./candidate.js";
+import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS, STATS } from "./candidate.js";
 import Chat from "./Chat.jsx";
 import ResumeWindow from "./ResumeWindow.jsx";
 import Window from "./Window.jsx";
@@ -16,7 +16,10 @@ const DOCK_ASK_ZOOM = 0.15;
 const BOOT_KEY = "hiremeai.booted";
 const BOOT_MS = 1700;
 const BOOT_FADE_MS = 400;
-const ROLE_MS = 2600;
+const TYPE_MS = 65;
+const DELETE_MS = 30;
+const HOLD_MS = 1500;
+const COUNT_MS = 1500;
 const ROLES = ["full-stack web apps", "React Native mobile apps", "AI-powered tools"];
 
 const SIZES = {
@@ -218,14 +221,91 @@ function ResumeIcon() {
   );
 }
 
-function Hero({ onAsk, onProjects }) {
-  const [role, setRole] = useState(0);
+const prefersLessMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function useTypewriter(words) {
+  const [text, setText] = useState(() => (prefersLessMotion() ? words[0] : ""));
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
-    const timer = setInterval(() => setRole((current) => (current + 1) % ROLES.length), ROLE_MS);
-    return () => clearInterval(timer);
-  }, []);
+    if (prefersLessMotion()) return undefined;
+    let word = 0;
+    let length = 0;
+    let deleting = false;
+    let timer;
+    function step() {
+      length += deleting ? -1 : 1;
+      setText(words[word].slice(0, length));
+      let delay = deleting ? DELETE_MS : TYPE_MS;
+      if (!deleting && length === words[word].length) {
+        deleting = true;
+        delay = HOLD_MS;
+      } else if (deleting && length === 0) {
+        deleting = false;
+        word = (word + 1) % words.length;
+      }
+      timer = setTimeout(step, delay);
+    }
+    timer = setTimeout(step, TYPE_MS);
+    return () => clearTimeout(timer);
+  }, [words]);
+
+  return text;
+}
+
+function CountUp({ value, suffix }) {
+  const [shown, setShown] = useState(() => (prefersLessMotion() ? value : 0));
+
+  useEffect(() => {
+    if (prefersLessMotion()) return undefined;
+    const start = performance.now();
+    let frame;
+    function tick(now) {
+      const progress = Math.min((now - start) / COUNT_MS, 1);
+      setShown(Math.round(value * (1 - (1 - progress) ** 3)));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  return <strong>{shown}{suffix}</strong>;
+}
+
+// Scattered with a fixed pattern, so the stars don't jump between renders
+function starField(count, offset) {
+  return Array.from({ length: count }, (_, index) => {
+    const x = ((index + offset) * 61.8) % 100;
+    const y = ((index + offset) * 37.3) % 100;
+    return `${x.toFixed(1)}vw ${y.toFixed(1)}vh 0 ${index % 5 === 0 ? 1 : 0}px #fff`;
+  }).join(",");
+}
+
+const STARS_A = starField(70, 1);
+const STARS_B = starField(45, 200);
+
+function Stars() {
+  return (
+    <>
+      <i className="stars" style={{ boxShadow: STARS_A }} aria-hidden="true" />
+      <i className="stars slow" style={{ boxShadow: STARS_B }} aria-hidden="true" />
+    </>
+  );
+}
+
+function tiltCard(event) {
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  const box = event.currentTarget.getBoundingClientRect();
+  event.currentTarget.style.setProperty("--tilt-x", `${((event.clientY - box.top) / box.height - 0.5) * -12}deg`);
+  event.currentTarget.style.setProperty("--tilt-y", `${((event.clientX - box.left) / box.width - 0.5) * 12}deg`);
+}
+
+function resetCard(event) {
+  event.currentTarget.style.removeProperty("--tilt-x");
+  event.currentTarget.style.removeProperty("--tilt-y");
+}
+
+function Hero({ onAsk, onProjects, onOpenProject }) {
+  const role = useTypewriter(ROLES);
 
   return (
     <div className="hero">
@@ -234,8 +314,10 @@ function Hero({ onAsk, onProjects }) {
         Seeking SDE and full-stack roles
       </p>
       <h1>Hariom Jha</h1>
-      <p className="hero-role">
-        I build <span key={role}>{ROLES[role]}</span>
+      <p className="hero-role" aria-label={`I build ${ROLES.join(", ")}`}>
+        <span aria-hidden="true">
+          I build <em>{role}</em><b className="caret" />
+        </span>
       </p>
       <div className="hero-actions">
         <button className="cta primary" onClick={onAsk}>
@@ -243,6 +325,29 @@ function Hero({ onAsk, onProjects }) {
           Ask my AI
         </button>
         <button className="cta" onClick={onProjects}>View projects</button>
+      </div>
+      <dl className="hero-stats">
+        {STATS.map((stat) => (
+          <div key={stat.label}>
+            <dd><CountUp value={stat.value} suffix={stat.suffix} /></dd>
+            <dt>{stat.label}</dt>
+          </div>
+        ))}
+      </dl>
+      <div className="showcase">
+        {PROJECTS.map((project) => (
+          <button
+            key={project.id}
+            className="showcase-card"
+            onClick={() => onOpenProject(`project:${project.id}`)}
+            onMouseMove={tiltCard}
+            onMouseLeave={resetCard}
+          >
+            <span className="showcase-bar" aria-hidden="true"><i /><i /><i /></span>
+            <img src={project.image} alt="" />
+            <span className="showcase-name">{project.name}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -438,12 +543,13 @@ export default function App() {
         </div>
       </nav>
 
+      <Stars />
       <div className="glow one" aria-hidden="true" />
       <div className="glow two" aria-hidden="true" />
       <div className="cursor-glow" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
 
-      <Hero onAsk={() => openWindow("ask")} onProjects={() => openWindow("projects")} />
+      <Hero onAsk={() => openWindow("ask")} onProjects={() => openWindow("projects")} onOpenProject={openWindow} />
 
       <div className="icons">
         {PROJECTS.map((project) => (

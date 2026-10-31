@@ -192,16 +192,160 @@ a {
   pointer-events: none;
 }
 
+.stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: twinkle 4s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.stars.slow {
+  opacity: 0.45;
+  animation-duration: 7s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes twinkle {
+  to {
+    opacity: 0.2;
+  }
+}
+
 .hero {
   position: absolute;
-  top: 50%;
-  right: 520px;
-  left: 130px;
+  top: 28px;
+  right: 500px;
+  bottom: 88px;
+  left: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  transform: translateY(-56%);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 10px;
+  margin: 22px 0 0;
+}
+
+.hero-stats > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 112px;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 14px;
+  padding: 9px 14px;
+  background: rgb(255 255 255 / 7%);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.hero-stats dd {
+  margin: 0;
+  font-family: Sora, Inter, sans-serif;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stats dt {
+  color: #bcc7e6;
+  font-size: 11.5px;
+}
+
+.showcase {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 30px;
+  perspective: 900px;
+}
+
+.showcase-card {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  position: relative;
+  flex: 0 1 230px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 12px;
+  padding: 0;
+  background: #14162c;
+  box-shadow: 0 22px 50px rgb(0 0 0 / 55%);
+  transform: rotate(var(--fan, 0deg)) translateY(var(--dip, 0)) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  transition: transform 0.22s ease-out, box-shadow 0.22s ease-out;
+}
+
+.showcase-card:nth-child(1) {
+  --fan: -6deg;
+  --dip: 12px;
+  margin-right: -14px;
+}
+
+.showcase-card:nth-child(2) {
+  z-index: 1;
+}
+
+.showcase-card:nth-child(3) {
+  --fan: 6deg;
+  --dip: 12px;
+  margin-left: -14px;
+}
+
+.showcase-card:hover {
+  z-index: 2;
+  --fan: 0deg;
+  --dip: -10px;
+  box-shadow: 0 30px 70px rgb(60 110 255 / 55%);
+}
+
+/* The middle card overlaps this one's left edge */
+.showcase-card:nth-child(3) .showcase-name {
+  text-align: right;
+}
+
+.showcase-bar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #1e2038;
+}
+
+.showcase-bar i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff5f57;
+}
+
+.showcase-bar i:nth-child(2) { background: #febc2e; }
+.showcase-bar i:nth-child(3) { background: #28c840; }
+
+.showcase-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: top;
+}
+
+.showcase-name {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 18px 10px 7px;
+  background: linear-gradient(transparent, rgb(5 6 20 / 92%));
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
 }
 
 .hero > * {
@@ -211,6 +355,8 @@ a {
 .hero > :nth-child(2) { animation-delay: 0.08s; }
 .hero > :nth-child(3) { animation-delay: 0.16s; }
 .hero > :nth-child(4) { animation-delay: 0.24s; }
+.hero > :nth-child(5) { animation-delay: 0.32s; }
+.hero > :nth-child(6) { animation-delay: 0.42s; }
 
 @keyframes rise {
   from {
@@ -251,13 +397,13 @@ a {
 }
 
 .hero h1 {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   padding-bottom: 0.08em;
   background: linear-gradient(180deg, #fff 30%, #a9c8ff);
   background-clip: text;
   color: transparent;
   font-family: Sora, Inter, sans-serif;
-  font-size: clamp(46px, 7.2vw, 118px);
+  font-size: clamp(44px, 6vw, 92px);
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1.02;
@@ -265,25 +411,35 @@ a {
 }
 
 .hero-role {
-  margin: 0 0 28px;
+  min-height: 1.5em;
+  margin: 0 0 22px;
   color: #d6def5;
-  font-size: clamp(17px, 1.7vw, 24px);
+  font-size: clamp(16px, 1.6vw, 22px);
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.hero-role span {
-  display: inline-block;
+.hero-role em {
   background: linear-gradient(90deg, #5ad1ff, #c08bff, #ff7ac6);
   background-clip: text;
   color: transparent;
+  font-style: normal;
   font-weight: 700;
-  animation: swap 0.45s ease-out;
 }
 
-@keyframes swap {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: #fff;
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
   }
 }
 
@@ -447,6 +603,7 @@ a {
   color: #1438d6;
   font-weight: 600;
   white-space: nowrap;
+  box-shadow: 0 0 22px rgb(120 170 255 / 75%);
 }
 
 .running {
@@ -1080,6 +1237,12 @@ a {
   }
 }
 
+@media (max-height: 760px) {
+  .hero-stats {
+    display: none;
+  }
+}
+
 @media (max-width: 800px) {
   .menu-title {
     max-width: 130px;
@@ -1098,15 +1261,52 @@ a {
   }
 
   .hero {
-    top: 37%;
-    right: 16px;
-    left: 16px;
+    top: 34px;
+    right: 14px;
+    bottom: 84px;
+    left: 14px;
+  }
+
+  .hero-status {
+    margin-bottom: 14px;
   }
 
   .hero-role {
-    margin-bottom: 22px;
+    margin-bottom: 18px;
   }
 
+  .hero-stats {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    margin-top: 18px;
+  }
+
+  .hero-stats > div {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 6px;
+  }
+
+  .hero-stats dd {
+    font-size: 19px;
+  }
+
+  .hero-stats dt {
+    font-size: 10.5px;
+  }
+
+  .showcase {
+    margin-top: 24px;
+  }
+
+  .showcase-name {
+    padding: 14px 6px 5px;
+    font-size: 10.5px;
+  }
+
+  /* The project cards take the place of the folders here */
+  .icons,
   .cursor-glow {
     display: none;
   }
