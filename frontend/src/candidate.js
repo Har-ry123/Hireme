@@ -6,11 +6,7 @@ export const DEFAULT_CANDIDATE = {
 
 export const RESUME_URL = "/Hariom-Jha-Resume.pdf";
 
-export const STATS = [
-  { value: 200, suffix: "+", label: "LeetCode solved" },
-  { value: 35, suffix: "%", label: "faster page load" },
-  { value: 500, suffix: "+", label: "live records" },
-];
+export const STATS = [{ value: 200, suffix: "+", label: "LeetCode solved" }];
 
 export const CONTACT_LINKS = [
   { label: "Email", value: "hariomjha100@gmail.com", href: "mailto:hariomjha100@gmail.com" },

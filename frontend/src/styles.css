@@ -1277,15 +1277,11 @@ a {
 
   .hero-stats {
     display: flex;
-    gap: 6px;
-    width: 100%;
     margin-top: 18px;
   }
 
   .hero-stats > div {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 6px;
+    padding: 8px 14px;
   }
 
   .hero-stats dd {
