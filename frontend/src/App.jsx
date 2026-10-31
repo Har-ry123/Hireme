@@ -1,12 +1,32 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  ArrowUp,
+  ArrowUpRight,
+  ClipboardList,
+  FileDown,
+  Gauge,
+  Menu,
+  MessageCircleQuestion,
+  Plus,
+  Sparkles,
+  Target,
+  Upload,
+  X,
+} from "lucide-react";
 import Markdown from "react-markdown";
 import { analyzeResume, askQuestion } from "./api.js";
 import { DEFAULT_CANDIDATE, HR_QUESTIONS } from "./candidate.js";
 
 const STORAGE_KEY = "hiremeai.state";
 const SLOW_REQUEST_MS = 8000;
+const COUNT_UP_MS = 1400;
 
-const DEFAULT_RESUME = { ...DEFAULT_CANDIDATE, analysis: null, indexed: true };
+const DEFAULT_RESUME = {
+  resumeId: DEFAULT_CANDIDATE.resumeId,
+  name: DEFAULT_CANDIDATE.name,
+  analysis: null,
+  indexed: true,
+};
 
 function newConversation(messages = [], title = "New conversation") {
   return { id: crypto.randomUUID(), title, messages };
@@ -23,14 +43,18 @@ function loadState() {
   return { resume: DEFAULT_RESUME, conversations: [conversation], activeId: conversation.id };
 }
 
+function firstNameOf(name) {
+  return name === "Candidate" ? "the candidate" : name.split(" ")[0];
+}
+
 function suggestionsFor(name) {
-  const first = name === "Candidate" ? "the candidate" : name.split(" ")[0];
+  const first = firstNameOf(name);
   return [
+    "Why should I hire you?",
     `Tell me about ${first}`,
     `What are ${first}'s main skills?`,
     `Explain ${first}'s main projects`,
     `What experience does ${first} have?`,
-    "Why should I hire you?",
   ];
 }
 
@@ -45,14 +69,68 @@ function useSlowFlag(active) {
   return slow;
 }
 
-function Logo({ name, size = "small" }) {
-  return <div className={`logo logo-${size}`}>{name.charAt(0).toUpperCase()}</div>;
+function useCountUp(target) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return undefined;
+    }
+    const start = performance.now();
+    let frame;
+    const tick = (now) => {
+      const progress = Math.min((now - start) / COUNT_UP_MS, 1);
+      setValue(Math.round(target * (1 - (1 - progress) ** 3)));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+  return value;
 }
 
-function AnalysisList({ title, items }) {
+// Moves the glow that follows the pointer across a card
+function trackPointer(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  event.currentTarget.style.setProperty("--x", `${event.clientX - rect.left}px`);
+  event.currentTarget.style.setProperty("--y", `${event.clientY - rect.top}px`);
+}
+
+function Orb({ name, size = "small" }) {
+  return (
+    <div className={`orb orb-${size}`} aria-hidden="true">
+      <span>{name.charAt(0).toUpperCase()}</span>
+    </div>
+  );
+}
+
+function Stat({ value, suffix, label }) {
+  const shown = useCountUp(value);
+  return (
+    <div className="stat">
+      <strong>{shown}{suffix}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function SkillTicker({ skills }) {
+  return (
+    <div className="ticker" aria-label={`Skills: ${skills.join(", ")}`}>
+      {/* The list is doubled so that the loop has no visible seam */}
+      <div className="ticker-track" aria-hidden="true">
+        {[...skills, ...skills].map((skill, index) => (
+          <span key={index}>{skill}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnalysisList({ title, items, tone }) {
   if (!items.length) return null;
   return (
-    <section>
+    <section className={`analysis-list ${tone}`}>
       <h4>{title}</h4>
       <ul>
         {items.map((item) => (
@@ -65,21 +143,30 @@ function AnalysisList({ title, items }) {
 
 function AnalysisCard({ name, analysis, indexed }) {
   return (
-    <article className="analysis">
+    <article className="analysis glass">
       <header>
         <div>
           <p className="eyebrow">Resume analysis</p>
           <h3>{name}</h3>
+          <p>{analysis.summary}</p>
         </div>
-        <div className="score" aria-label={`Score: ${analysis.score} out of 100`}>
-          <strong>{analysis.score}</strong>
-          <span>/100</span>
+        <div
+          className="score"
+          style={{ "--score": analysis.score }}
+          role="img"
+          aria-label={`Score: ${analysis.score} out of 100`}
+        >
+          <div>
+            <strong>{analysis.score}</strong>
+            <span>of 100</span>
+          </div>
         </div>
       </header>
-      <p>{analysis.summary}</p>
-      <AnalysisList title="Strengths" items={analysis.strengths} />
-      <AnalysisList title="Weaknesses" items={analysis.weaknesses} />
-      <AnalysisList title="Suggestions" items={analysis.suggestions} />
+      <div className="analysis-grid">
+        <AnalysisList title="Strengths" items={analysis.strengths} tone="good" />
+        <AnalysisList title="Weaknesses" items={analysis.weaknesses} tone="warn" />
+        <AnalysisList title="Suggestions" items={analysis.suggestions} tone="idea" />
+      </div>
       {!indexed && (
         <p className="notice">
           This resume couldn't be saved for chat, so questions won't work yet. Upload it again to retry.
@@ -91,9 +178,9 @@ function AnalysisCard({ name, analysis, indexed }) {
 
 function HrQuestions({ onAsk }) {
   return (
-    <article className="hr-questions">
+    <article className="hr-questions glass">
       <p className="eyebrow">HR interview</p>
-      <h3>Ask a common HR question</h3>
+      <h3>Pick a question. Get an answer.</h3>
       {HR_QUESTIONS.map((group) => (
         <section key={group.title}>
           <h4>{group.title}</h4>
@@ -123,10 +210,64 @@ function Message({ message, resume, streaming, onAsk }) {
   }
   return (
     <div className="message-assistant">
-      <Logo name={resume.name} />
+      <Orb name={resume.name} />
       <div className={`markdown ${streaming ? "streaming" : ""}`}>
         <Markdown>{message.content}</Markdown>
       </div>
+    </div>
+  );
+}
+
+function Thinking({ label, hint }) {
+  return (
+    <div className="status" role="status">
+      <p>
+        <span className="dots" aria-hidden="true"><i /><i /><i /></span>
+        {label}
+      </p>
+      {hint}
+    </div>
+  );
+}
+
+function Welcome({ resume, profile, onAsk, onShowHr }) {
+  return (
+    <div className="welcome">
+      <div className="pill">
+        <span className="live-dot" />
+        AI representative online
+      </div>
+      <h2>
+        Meet {resume.name}.
+        <em>Interview the AI, not the PDF.</em>
+      </h2>
+      <p className="tagline">
+        {profile ? profile.tagline : `Ask anything about ${resume.name}'s resume.`}
+      </p>
+
+      {profile && (
+        <div className="stats">
+          {profile.highlights.map((highlight) => (
+            <Stat key={highlight.label} {...highlight} />
+          ))}
+        </div>
+      )}
+
+      <div className="suggestions">
+        {suggestionsFor(resume.name).map((suggestion) => (
+          <button key={suggestion} className="glow-card" onMouseMove={trackPointer} onClick={() => onAsk(suggestion)}>
+            <span>{suggestion}</span>
+            <ArrowUpRight size={18} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+
+      <button className="ghost" onClick={onShowHr}>
+        <ClipboardList size={16} aria-hidden="true" />
+        See all 28 HR questions
+      </button>
+
+      {profile && <SkillTicker skills={profile.skills} />}
     </div>
   );
 }
@@ -145,6 +286,8 @@ export default function App() {
 
   const { resume, conversations, activeId } = state;
   const active = conversations.find((c) => c.id === activeId) ?? conversations[0];
+  // The stats and skills describe the default candidate, so an uploaded resume must not show them
+  const profile = resume.resumeId === DEFAULT_CANDIDATE.resumeId ? DEFAULT_CANDIDATE : null;
 
   useEffect(() => {
     try {
@@ -241,8 +384,7 @@ export default function App() {
     setUploadError("");
     try {
       const result = await analyzeResume(file);
-      const conversation = newConversation([{ role: "analysis" }]);
-      conversation.title = "Resume analysis";
+      const conversation = newConversation([{ role: "analysis" }], "Resume analysis");
       setState({
         resume: {
           resumeId: result.resume_id,
@@ -274,68 +416,79 @@ export default function App() {
     setTimeout(() => window.print(), 0);
   }
 
-  const slowHint = slow && (
-    <p className="slow-hint">The server may be waking up. This can take up to a minute.</p>
-  );
+  function showHrQuestions() {
+    startConversation([{ role: "hr" }], "HR questions");
+  }
 
-  const hiddenFileInput = (
-    <input
-      ref={fileInput}
-      type="file"
-      accept=".pdf,.docx"
-      className="visually-hidden"
-      aria-label="Upload a resume"
-      onChange={handleFile}
-    />
+  const slowHint = slow && (
+    <p className="slow-hint">This is taking longer than usual, and can take up to a minute.</p>
   );
 
   const tools = [
-    { label: "Upload new resume", onClick: () => fileInput.current.click(), disabled: uploading },
+    { label: "HR questions", icon: ClipboardList, onClick: showHrQuestions },
+    {
+      label: "Why hire this candidate?",
+      icon: Sparkles,
+      onClick: () => ask("Why should a company hire this candidate? Give the strongest reasons from the resume."),
+    },
+    {
+      label: "Interview questions",
+      icon: MessageCircleQuestion,
+      onClick: () => ask("Suggest five interview questions for this candidate, based on the resume."),
+    },
+    { label: "Job match score", icon: Target, onClick: prefillJobMatch },
     {
       label: "Resume analysis",
+      icon: Gauge,
       onClick: () => startConversation([{ role: "analysis" }], "Resume analysis"),
       hidden: !resume.analysis,
     },
-    { label: "HR questions", onClick: () => startConversation([{ role: "hr" }], "HR questions") },
-    {
-      label: "Interview questions",
-      onClick: () => ask("Suggest five interview questions for this candidate, based on the resume."),
-    },
-    { label: "Job match score", onClick: prefillJobMatch },
-    {
-      label: "Why hire this candidate?",
-      onClick: () => ask("Why should a company hire this candidate? Give the strongest reasons from the resume."),
-    },
-    { label: "Export chat as PDF", onClick: exportChat, disabled: !active.messages.length },
+    { label: "Upload new resume", icon: Upload, onClick: () => fileInput.current.click(), disabled: uploading },
+    { label: "Export chat as PDF", icon: FileDown, onClick: exportChat, disabled: !active.messages.length },
   ];
 
   return (
     <div className="app">
-      {hiddenFileInput}
+      <div className="aurora" aria-hidden="true">
+        <i /><i /><i />
+      </div>
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".pdf,.docx"
+        className="visually-hidden"
+        aria-label="Upload a resume"
+        onChange={handleFile}
+      />
       {sidebarOpen && <div className="scrim" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar glass ${sidebarOpen ? "open" : ""}`}>
         <div className="brand">
-          <Logo name={resume.name} />
+          <Orb name={resume.name} />
           <div>
-            <strong>Candidate AI</strong>
+            <strong>HireMeAI</strong>
             <span>{resume.name}</span>
           </div>
         </div>
 
-        <button className="new-chat" onClick={openNewChat}>+ New chat</button>
+        <button className="new-chat" onClick={openNewChat}>
+          <Plus size={16} aria-hidden="true" />
+          New chat
+        </button>
 
         <nav aria-label="AI tools">
           <h2>AI tools</h2>
           {tools.filter((tool) => !tool.hidden).map((tool) => (
             <button key={tool.label} className="tool" onClick={tool.onClick} disabled={tool.disabled}>
+              <tool.icon size={16} aria-hidden="true" />
               {tool.label}
             </button>
           ))}
         </nav>
 
         <nav aria-label="Conversation history" className="history">
-          <h2>Conversation history</h2>
+          <h2>History</h2>
           {conversations.map((conversation) => (
             <div key={conversation.id} className={`history-item ${conversation.id === active.id ? "active" : ""}`}>
               <button
@@ -352,7 +505,7 @@ export default function App() {
                 aria-label={`Delete ${conversation.title}`}
                 onClick={() => deleteConversation(conversation.id)}
               >
-                ×
+                <X size={14} aria-hidden="true" />
               </button>
             </div>
           ))}
@@ -361,36 +514,18 @@ export default function App() {
 
       <main className="chat">
         <header className="chat-header">
-          <button className="menu" aria-label="Open menu" onClick={() => setSidebarOpen(true)}>☰</button>
-          <div>
-            <h1>{resume.name}'s AI Representative</h1>
-            <p>Ask questions about the candidate</p>
-          </div>
+          <button className="menu" aria-label="Open menu" onClick={() => setSidebarOpen(true)}>
+            <Menu size={18} aria-hidden="true" />
+          </button>
+          <h1>{resume.name}'s AI Representative</h1>
         </header>
 
         <div className="thread">
           {uploadError && <p className="message-error" role="alert">{uploadError}</p>}
-          {uploading && (
-            <div className="status">
-              <p>Analyzing resume…</p>
-              {slowHint}
-            </div>
-          )}
+          {uploading && <Thinking label="Analyzing resume" hint={slowHint} />}
 
           {active.messages.length === 0 && !uploading ? (
-            <div className="welcome">
-              <Logo name={resume.name} size="large" />
-              <h2>How can I help you?</h2>
-              <p>Ask about {resume.name}'s education, skills, projects, experience or certifications.</p>
-              <div className="suggestions">
-                {suggestionsFor(resume.name).map((suggestion) => (
-                  <button key={suggestion} onClick={() => ask(suggestion)}>
-                    {suggestion}
-                    <span aria-hidden="true">↗</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Welcome resume={resume} profile={profile} onAsk={ask} onShowHr={showHrQuestions} />
           ) : (
             <div className="messages">
               {active.messages.map((message, index) => (
@@ -402,12 +537,7 @@ export default function App() {
                   onAsk={ask}
                 />
               ))}
-              {asking && lastMessage?.role !== "assistant" && (
-                <div className="status">
-                  <p>Thinking…</p>
-                  {!uploading && slowHint}
-                </div>
-              )}
+              {asking && lastMessage?.role !== "assistant" && <Thinking label="Thinking" hint={slowHint} />}
               <div ref={threadEnd} />
             </div>
           )}
@@ -425,7 +555,7 @@ export default function App() {
               ref={composer}
               rows={input.includes("\n") ? 4 : 1}
               value={input}
-              placeholder={`Ask anything about ${resume.name}…`}
+              placeholder={`Ask ${firstNameOf(resume.name)} anything…`}
               aria-label="Your question"
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -435,9 +565,11 @@ export default function App() {
                 }
               }}
             />
-            <button type="submit" className="primary" disabled={!input.trim() || asking}>Send</button>
+            <button type="submit" className="send" aria-label="Send" disabled={!input.trim() || asking}>
+              <ArrowUp size={18} aria-hidden="true" />
+            </button>
           </div>
-          <small>AI answers use only the active candidate's resume.</small>
+          <small>Answers come only from this candidate's resume and their own words.</small>
         </form>
       </main>
     </div>
