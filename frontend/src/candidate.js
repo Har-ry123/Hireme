@@ -1,6 +1,6 @@
 // The resume the site opens on. resume_id comes from POST /analyze and is the same every time for the same file.
 export const DEFAULT_CANDIDATE = {
-  resumeId: "c4c83b44-220e-5e37-a8f5-e1a7b21c3b6f",
+  resumeId: "cdf49855-90ff-5abd-86a4-7d4edec27f93",
   name: "Hariom Jha",
 };
 
