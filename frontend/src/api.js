@@ -1,4 +1,7 @@
 const API_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const TICK_MS = 25;
+const MIN_CHARS_PER_TICK = 2;
+const BACKLOG_DIVISOR = 120;
 
 async function send(path, options) {
   let response;
@@ -33,15 +36,34 @@ export async function askQuestion(resumeId, question, onText) {
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   let answer = "";
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      answer += value;
-      onText(answer);
+  let finished = false;
+  let failed = false;
+  const receiving = (async () => {
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        answer += value;
+      }
+    } catch {
+      failed = true;
     }
-  } catch {
-    throw new Error("The connection dropped before the answer finished. Try again.");
+    finished = true;
+  })();
+
+  // Groq can finish a long answer in a second, so reveal the text at a readable pace.
+  // The step grows with the backlog, so long answers don't take forever.
+  let shown = 0;
+  while (!finished || shown < answer.length) {
+    if (shown < answer.length) {
+      const backlog = answer.length - shown;
+      shown += Math.max(MIN_CHARS_PER_TICK, Math.ceil(backlog / BACKLOG_DIVISOR));
+      onText(answer.slice(0, shown));
+    }
+    await new Promise((resolve) => setTimeout(resolve, TICK_MS));
   }
+  await receiving;
+
+  if (failed) throw new Error("The connection dropped before the answer finished. Try again.");
   if (!answer) throw new Error("The server returned an empty answer. Try again.");
 }
