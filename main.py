@@ -18,7 +18,7 @@ def read_root():
     return {"message": "Welcome to HireMeAI Backend!"}
 
 # Add your resume parsing / AI endpoint here
-@post("/analyze")
+@app.post("/analyze")
 async def analyze_resume(file: UploadFile = File(...)):
     # Your resume parsing logic with Groq goes here
     return {"filename": file.filename, "status": "Processed successfully"}
