@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, Folder, Mail, Sparkles, UserRound, Wifi } from "lucide-react";
+import { ExternalLink, FileText, Folder, Mail, Sparkles, UserRound, Wifi } from "lucide-react";
 import { askQuestion } from "./api.js";
 import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS } from "./candidate.js";
 import Chat from "./Chat.jsx";
@@ -128,6 +128,12 @@ function ProjectWindow({ project }) {
           <li key={point}>{point}</li>
         ))}
       </ul>
+      {project.github && (
+        <a className="project-link" href={project.github} target="_blank" rel="noreferrer">
+          <ExternalLink size={14} aria-hidden="true" />
+          View on GitHub
+        </a>
+      )}
     </div>
   );
 }

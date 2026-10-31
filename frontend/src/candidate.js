@@ -19,6 +19,7 @@ export const PROJECTS = [
     name: "Smart AI Assistant",
     date: "Jan 2026",
     stack: "HTML, Java, Canvas API, Ollama",
+    github: "https://github.com/Har-ry123/Own-Ai-Assistant",
     points: [
       "Engineered a vector-based search engine using HNSW, KD-Tree and brute-force algorithms.",
       "Architected a modular backend separating training, inference and API layers.",
@@ -30,6 +31,7 @@ export const PROJECTS = [
     name: "WanderLust",
     date: "Oct 2025",
     stack: "HTML/CSS, JavaScript, NodeJS, ExpressJS, Mapbox, MongoDB",
+    github: "https://github.com/Har-ry123/WanderLust-Latest",
     points: [
       "Developed a full-stack MVC travel planning platform with dynamic maps.",
       "Integrated Mapbox APIs for geolocation tracking, spatial queries and route visualization.",

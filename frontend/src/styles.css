@@ -666,6 +666,19 @@ a {
   margin-top: 6px;
 }
 
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: var(--blue);
+  color: #06233f;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .row {
   display: flex;
   flex-direction: column;
