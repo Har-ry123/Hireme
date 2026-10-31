@@ -194,6 +194,22 @@ export default function App() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    // Keeps windows on screen when the browser gets narrower
+    function keepOnScreen() {
+      setWindows((all) =>
+        Object.fromEntries(
+          Object.entries(all).map(([id, win]) => [
+            id,
+            { ...win, x: Math.min(win.x, Math.max(window.innerWidth - win.width - 16, 16)) },
+          ]),
+        ),
+      );
+    }
+    window.addEventListener("resize", keepOnScreen);
+    return () => window.removeEventListener("resize", keepOnScreen);
+  }, []);
+
   function openWindow(id) {
     const z = nextZ.current++;
     opened.current += 1;

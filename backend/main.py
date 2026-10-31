@@ -23,13 +23,18 @@ RATE_LIMIT_MESSAGE = "The AI has reached its usage limit for now. Please try aga
 
 app = FastAPI(title="HireMeAI API")
 
-# Enable CORS so your Vercel frontend can talk to this Render backend
+# Only these sites can call the API from a browser. Scripts aren't affected by CORS.
+ALLOWED_ORIGINS = [
+    "https://hireme-virid.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:4173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace "*" with your Vercel frontend URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 @app.get("/")
