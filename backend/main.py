@@ -25,6 +25,7 @@ app = FastAPI(title="HireMeAI API")
 
 # Only these sites can call the API from a browser. Scripts aren't affected by CORS.
 ALLOWED_ORIGINS = [
+    "https://harryverse.vercel.app",
     "https://hireme-virid.vercel.app",
     "http://localhost:5173",
     "http://localhost:4173",
