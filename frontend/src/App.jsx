@@ -16,6 +16,8 @@ const DOCK_ASK_ZOOM = 0.15;
 const BOOT_KEY = "hiremeai.booted";
 const BOOT_MS = 1700;
 const BOOT_FADE_MS = 400;
+const ROLE_MS = 2600;
+const ROLES = ["full-stack web apps", "React Native mobile apps", "AI-powered tools"];
 
 const SIZES = {
   ask: { width: 430, height: 590 },
@@ -56,6 +58,12 @@ function placeWindow(id, order) {
     x: Math.max((window.innerWidth - width) / 2 - 160 + offset, 16),
     y: MENU_BAR_HEIGHT + 48 + offset,
   };
+}
+
+// Moves the soft light that follows the pointer across the wallpaper
+function followPointer(event) {
+  event.currentTarget.style.setProperty("--pointer-x", `${event.clientX}px`);
+  event.currentTarget.style.setProperty("--pointer-y", `${event.clientY}px`);
 }
 
 function shouldBoot() {
@@ -139,35 +147,105 @@ function Wallpaper() {
     <svg className="wallpaper" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#0a1f7a" />
-          <stop offset="0.55" stopColor="#1438d6" />
-          <stop offset="1" stopColor="#0a165c" />
+          <stop offset="0" stopColor="#060818" />
+          <stop offset="0.5" stopColor="#0b1140" />
+          <stop offset="1" stopColor="#12062e" />
         </linearGradient>
-        <linearGradient id="waveA" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#0d2bb5" />
-          <stop offset="0.6" stopColor="#3f6bff" />
-          <stop offset="1" stopColor="#a9c4ff" />
+        <linearGradient id="silk1" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="#1226a8" stopOpacity="0" />
+          <stop offset="0.45" stopColor="#2f5bff" stopOpacity="0.9" />
+          <stop offset="0.8" stopColor="#47c6ff" />
+          <stop offset="1" stopColor="#c6f1ff" />
         </linearGradient>
-        <linearGradient id="waveB" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#6d4dff" stopOpacity="0.9" />
-          <stop offset="1" stopColor="#0a1a6e" stopOpacity="0.95" />
+        <linearGradient id="silk2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ff4fb8" stopOpacity="0.95" />
+          <stop offset="0.5" stopColor="#7a3dff" stopOpacity="0.95" />
+          <stop offset="1" stopColor="#140a55" />
+        </linearGradient>
+        <linearGradient id="silk3" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="#0b0f3f" />
+          <stop offset="1" stopColor="#3a1aa8" stopOpacity="0.9" />
         </linearGradient>
         <linearGradient id="edge" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0" />
-          <stop offset="0.7" stopColor="#ffffff" stopOpacity="0.9" />
-          <stop offset="1" stopColor="#ffffff" stopOpacity="0.5" />
+          <stop offset="0.1" stopColor="#ffffff" stopOpacity="0" />
+          <stop offset="0.75" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0.35" />
         </linearGradient>
       </defs>
       <rect width="1600" height="1000" fill="url(#sky)" />
-      <path d="M0 1000 C 420 900 620 640 860 400 C 1040 220 1240 70 1600 0 L1600 1000 Z" fill="url(#waveA)" />
-      <path d="M260 1000 C 700 880 900 660 1140 480 C 1300 360 1460 300 1600 280 L1600 1000 Z" fill="url(#waveB)" />
-      <path d="M0 1000 C 420 900 620 640 860 400 C 1040 220 1240 70 1600 0" fill="none" stroke="url(#edge)" strokeWidth="5" />
+      <g className="drift-a">
+        <path d="M-60 1040 C 420 960 640 690 880 430 C 1060 240 1260 80 1680 -40 L1680 1040 Z" fill="url(#silk1)" />
+        <path d="M-60 1040 C 420 960 640 690 880 430 C 1060 240 1260 80 1680 -40" fill="none" stroke="url(#edge)" strokeWidth="3" />
+      </g>
+      <g className="drift-b">
+        <path d="M200 1040 C 640 930 860 720 1120 520 C 1290 390 1470 320 1680 290 L1680 1040 Z" fill="url(#silk2)" />
+        <path d="M200 1040 C 640 930 860 720 1120 520 C 1290 390 1470 320 1680 290" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2" />
+      </g>
+      <path d="M520 1040 C 880 980 1120 840 1680 640 L1680 1040 Z" fill="url(#silk3)" />
     </svg>
   );
 }
 
 function ProjectFolderIcon() {
-  return <Folder size={46} strokeWidth={1.2} fill="#6fd3ff" color="#a9e6ff" aria-hidden="true" />;
+  return (
+    <svg className="folder-icon" viewBox="0 0 64 52" aria-hidden="true">
+      <defs>
+        <linearGradient id="folderBack" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#3aa6ff" />
+          <stop offset="1" stopColor="#1668e3" />
+        </linearGradient>
+        <linearGradient id="folderFront" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#8fdcff" />
+          <stop offset="1" stopColor="#2f8cf5" />
+        </linearGradient>
+      </defs>
+      <path d="M4 8a5 5 0 0 1 5-5h14l6 6h26a5 5 0 0 1 5 5v30a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z" fill="url(#folderBack)" />
+      <path d="M4 18a4 4 0 0 1 4-4h48a4 4 0 0 1 4 4v26a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z" fill="url(#folderFront)" />
+      <path d="M8 15h48a3 3 0 0 1 3 3" fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function ResumeIcon() {
+  return (
+    <svg className="folder-icon" viewBox="0 0 52 62" aria-hidden="true">
+      <path d="M7 1h27l17 17v38a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6a5 5 0 0 1 5-5Z" fill="#f5f7fc" />
+      <path d="M34 1l17 17H39a5 5 0 0 1-5-5Z" fill="#c3cce0" />
+      <rect x="10" y="27" width="32" height="3" rx="1.5" fill="#9aa7c7" />
+      <rect x="10" y="35" width="32" height="3" rx="1.5" fill="#b6c0d8" />
+      <rect x="10" y="43" width="20" height="3" rx="1.5" fill="#b6c0d8" />
+    </svg>
+  );
+}
+
+function Hero({ onAsk, onProjects }) {
+  const [role, setRole] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const timer = setInterval(() => setRole((current) => (current + 1) % ROLES.length), ROLE_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="hero">
+      <p className="hero-status">
+        <i aria-hidden="true" />
+        Seeking SDE and full-stack roles
+      </p>
+      <h1>Hariom Jha</h1>
+      <p className="hero-role">
+        I build <span key={role}>{ROLES[role]}</span>
+      </p>
+      <div className="hero-actions">
+        <button className="cta primary" onClick={onAsk}>
+          <Sparkles size={17} aria-hidden="true" />
+          Ask my AI
+        </button>
+        <button className="cta" onClick={onProjects}>View projects</button>
+      </div>
+    </div>
+  );
 }
 
 function ProjectsWindow({ onOpen }) {
@@ -343,7 +421,7 @@ export default function App() {
   }
 
   return (
-    <div className="desktop">
+    <div className="desktop" onMouseMove={followPointer}>
       <Wallpaper />
 
       <nav className="menubar" aria-label="Menu">
@@ -360,11 +438,12 @@ export default function App() {
         </div>
       </nav>
 
-      <div className="hero">
-        <p>Hello, I'm</p>
-        <h1>Hariom Jha</h1>
-        <p>Software engineer building full-stack web and mobile apps</p>
-      </div>
+      <div className="glow one" aria-hidden="true" />
+      <div className="glow two" aria-hidden="true" />
+      <div className="cursor-glow" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
+
+      <Hero onAsk={() => openWindow("ask")} onProjects={() => openWindow("projects")} />
 
       <div className="icons">
         {PROJECTS.map((project) => (
@@ -374,7 +453,7 @@ export default function App() {
           </button>
         ))}
         <button className="icon" onClick={() => openWindow("resume")}>
-          <FileText size={44} strokeWidth={1.2} fill="#f4f6fb" color="#9aa7c7" aria-hidden="true" />
+          <ResumeIcon />
           <span>Resume.pdf</span>
         </button>
       </div>
