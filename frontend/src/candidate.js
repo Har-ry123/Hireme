@@ -9,8 +9,8 @@ export const RESUME_URL = "/Hariom-Jha-Resume.pdf";
 export const CONTACT_LINKS = [
   { label: "Email", value: "hariomjha100@gmail.com", href: "mailto:hariomjha100@gmail.com" },
   { label: "LinkedIn", value: "linkedin.com/in/hariomjha", href: "https://linkedin.com/in/hariomjha" },
-  { label: "GitHub", value: "github.com/hariomjha", href: "https://github.com/hariomjha" },
-  { label: "LeetCode", value: "leetcode.com/u/hariomjha", href: "https://leetcode.com/u/hariomjha" },
+  { label: "GitHub", value: "github.com/Har-ry123", href: "https://github.com/Har-ry123" },
+  { label: "LeetCode", value: "leetcode.com/u/Hariom_z", href: "https://leetcode.com/u/Hariom_z/" },
 ];
 
 export const PROJECTS = [
