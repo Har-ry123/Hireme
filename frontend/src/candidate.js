@@ -4,6 +4,65 @@ export const DEFAULT_CANDIDATE = {
   name: "Hariom Jha",
 };
 
+export const RESUME_URL = "/Hariom-Jha-Resume.pdf";
+
+export const CONTACT_LINKS = [
+  { label: "Email", value: "hariomjha100@gmail.com", href: "mailto:hariomjha100@gmail.com" },
+  { label: "LinkedIn", value: "linkedin.com/in/hariomjha", href: "https://linkedin.com/in/hariomjha" },
+  { label: "GitHub", value: "github.com/hariomjha", href: "https://github.com/hariomjha" },
+  { label: "LeetCode", value: "leetcode.com/u/hariomjha", href: "https://leetcode.com/u/hariomjha" },
+];
+
+export const PROJECTS = [
+  {
+    id: "smart-ai-assistant",
+    name: "Smart AI Assistant",
+    date: "Jan 2026",
+    stack: "HTML, Java, Canvas API, Ollama",
+    points: [
+      "Engineered a vector-based search engine using HNSW, KD-Tree and brute-force algorithms.",
+      "Architected a modular backend separating training, inference and API layers.",
+      "Developed an interactive interface with real-time query visualization and sub-second response latency.",
+    ],
+  },
+  {
+    id: "wanderlust",
+    name: "WanderLust",
+    date: "Oct 2025",
+    stack: "HTML/CSS, JavaScript, NodeJS, ExpressJS, Mapbox, MongoDB",
+    points: [
+      "Developed a full-stack MVC travel planning platform with dynamic maps.",
+      "Integrated Mapbox APIs for geolocation tracking, spatial queries and route visualization.",
+      "Engineered secure RESTful backend services using ExpressJS and MongoDB.",
+    ],
+  },
+  {
+    id: "shareplate",
+    name: "SharePlate",
+    date: "Feb 2025 – Mar 2025",
+    stack: "HTML/CSS, JavaScript, ReactJS, ExpressJS, EJS, MongoDB",
+    points: [
+      "Launched a full-stack food donation platform with multi-role authentication.",
+      "Developed RESTful APIs and MongoDB schemas managing 500+ live records.",
+      "Reduced overall page load time by 35%.",
+    ],
+  },
+];
+
+export const ABOUT = {
+  summary:
+    "Computer Science undergraduate and aspiring Software Engineer with hands-on experience building full-stack web applications, mobile apps and scalable software systems.",
+  experience: [
+    { role: "Software Intern", place: "boAt R&D", date: "Sep 2026 – Present" },
+    { role: "Web Developer", place: "Internship Studio", date: "Feb 2025 – Mar 2025" },
+  ],
+  education: [
+    { role: "B.Tech in Computer Science and Engineering", place: "Kalinga Institute of Industrial Technology", date: "2022 – 2026, CGPA 7.83" },
+  ],
+  skills: "Java, C, Python, JavaScript, SQL, ReactJS, React Native, NodeJS, ExpressJS, Flask, MongoDB, Git",
+  achievements: "200+ LeetCode problems solved, and the 50 Days Coding Badge.",
+};
+
 export const HR_QUESTIONS = [
   {
     title: "About you",

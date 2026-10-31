@@ -19,13 +19,6 @@ async function send(path, options) {
   return response;
 }
 
-export async function analyzeResume(file) {
-  const form = new FormData();
-  form.append("file", file);
-  const response = await send("/analyze", { method: "POST", body: form });
-  return response.json();
-}
-
 // Calls onText with the answer so far, each time more of it arrives
 export async function askQuestion(resumeId, question, onText) {
   const response = await send("/chat", {
