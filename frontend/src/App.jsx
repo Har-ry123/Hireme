@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, FileText, Folder, Mail, Sparkles, UserRound, Wifi } from "lucide-react";
 import { askQuestion } from "./api.js";
-import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS, STATS } from "./candidate.js";
+import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS } from "./candidate.js";
 import Chat from "./Chat.jsx";
 import ResumeWindow from "./ResumeWindow.jsx";
 import Window from "./Window.jsx";
@@ -19,7 +19,6 @@ const BOOT_FADE_MS = 400;
 const TYPE_MS = 65;
 const DELETE_MS = 30;
 const HOLD_MS = 1500;
-const COUNT_MS = 1500;
 const ROLES = ["full-stack web apps", "React Native mobile apps", "AI-powered tools"];
 
 const SIZES = {
@@ -252,25 +251,6 @@ function useTypewriter(words) {
   return text;
 }
 
-function CountUp({ value, suffix }) {
-  const [shown, setShown] = useState(() => (prefersLessMotion() ? value : 0));
-
-  useEffect(() => {
-    if (prefersLessMotion()) return undefined;
-    const start = performance.now();
-    let frame;
-    function tick(now) {
-      const progress = Math.min((now - start) / COUNT_MS, 1);
-      setShown(Math.round(value * (1 - (1 - progress) ** 3)));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    }
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [value]);
-
-  return <strong>{shown}{suffix}</strong>;
-}
-
 // Scattered with a fixed pattern, so the stars don't jump between renders
 function starField(count, offset) {
   return Array.from({ length: count }, (_, index) => {
@@ -326,14 +306,6 @@ function Hero({ onAsk, onProjects, onOpenProject }) {
         </button>
         <button className="cta" onClick={onProjects}>View projects</button>
       </div>
-      <dl className="hero-stats">
-        {STATS.map((stat) => (
-          <div key={stat.label}>
-            <dd><CountUp value={stat.value} suffix={stat.suffix} /></dd>
-            <dt>{stat.label}</dt>
-          </div>
-        ))}
-      </dl>
       <div className="showcase">
         {PROJECTS.map((project) => (
           <button
