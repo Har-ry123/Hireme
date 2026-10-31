@@ -10,13 +10,19 @@ const STORAGE_KEY = "hiremeai.chat";
 const PHONE_WIDTH = 800;
 const MENU_BAR_HEIGHT = 28;
 const DOCK_SPACE = 104;
+const DOCK_REACH = 130;
+const DOCK_ZOOM = 0.6;
+const DOCK_ASK_ZOOM = 0.15;
+const BOOT_KEY = "hiremeai.booted";
+const BOOT_MS = 1700;
+const BOOT_FADE_MS = 400;
 
 const SIZES = {
   ask: { width: 430, height: 590 },
-  projects: { width: 640, height: 400 },
-  about: { width: 540, height: 500 },
+  projects: { width: 700, height: 300 },
+  about: { width: 540, height: 600 },
   contact: { width: 420, height: 330 },
-  project: { width: 520, height: 380 },
+  project: { width: 640, height: 640 },
   resume: { width: 640, height: 760 },
 };
 
@@ -50,6 +56,67 @@ function placeWindow(id, order) {
     x: Math.max((window.innerWidth - width) / 2 - 160 + offset, 16),
     y: MENU_BAR_HEIGHT + 48 + offset,
   };
+}
+
+function shouldBoot() {
+  try {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+    // Only on the first visit in a tab, so that reloading isn't slowed down
+    if (sessionStorage.getItem(BOOT_KEY)) return false;
+    sessionStorage.setItem(BOOT_KEY, "1");
+  } catch {
+    // Storage can be blocked: still show the boot screen
+  }
+  return true;
+}
+
+function BootScreen() {
+  const [phase, setPhase] = useState(() => (shouldBoot() ? "loading" : "done"));
+
+  useEffect(() => {
+    if (phase === "done") return undefined;
+    const delay = phase === "loading" ? BOOT_MS : BOOT_FADE_MS;
+    const timer = setTimeout(() => setPhase(phase === "loading" ? "fading" : "done"), delay);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  if (phase === "done") return null;
+  return (
+    <div className={`boot ${phase}`} role="status" aria-label="Loading">
+      <div className="boot-mark" aria-hidden="true">H</div>
+      <div className="boot-bar" aria-hidden="true"><i /></div>
+    </div>
+  );
+}
+
+function Dock({ children }) {
+  const dock = useRef(null);
+
+  // Items grow near the pointer, and their margins push the neighbours aside
+  function magnify(event) {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    for (const item of dock.current.children) {
+      const box = item.getBoundingClientRect();
+      const distance = Math.abs(event.clientX - (box.left + box.width / 2));
+      const closeness = Math.max(0, 1 - distance / DOCK_REACH);
+      const scale = 1 + closeness * closeness * (item.classList.contains("dock-ask") ? DOCK_ASK_ZOOM : DOCK_ZOOM);
+      item.style.setProperty("--scale", scale);
+      item.style.setProperty("--push", `${((scale - 1) * item.offsetWidth) / 2}px`);
+    }
+  }
+
+  function reset() {
+    for (const item of dock.current.children) {
+      item.style.removeProperty("--scale");
+      item.style.removeProperty("--push");
+    }
+  }
+
+  return (
+    <nav className="dock" aria-label="Dock" ref={dock} onMouseMove={magnify} onMouseLeave={reset}>
+      {children}
+    </nav>
+  );
 }
 
 function useClock() {
@@ -108,7 +175,7 @@ function ProjectsWindow({ onOpen }) {
     <div className="finder">
       {PROJECTS.map((project) => (
         <button key={project.id} onClick={() => onOpen(`project:${project.id}`)}>
-          <ProjectFolderIcon />
+          <img src={project.image} alt="" loading="lazy" />
           <span>{project.name}</span>
           <small>{project.date}</small>
         </button>
@@ -120,6 +187,7 @@ function ProjectsWindow({ onOpen }) {
 function ProjectWindow({ project }) {
   return (
     <div className="document">
+      <img className="project-shot" src={project.image} alt={`Screenshot of ${project.name}`} />
       <p className="meta">{project.date}</p>
       <h3>{project.name}</h3>
       <p className="stack">{project.stack}</p>
@@ -139,22 +207,20 @@ function ProjectWindow({ project }) {
 }
 
 function AboutWindow() {
-  const rows = (items) =>
-    items.map((item) => (
-      <div className="row" key={item.role}>
-        <strong>{item.role}</strong>
-        <span>{item.place}</span>
-        <small>{item.date}</small>
-      </div>
-    ));
   return (
     <div className="document">
       <h3>{DEFAULT_CANDIDATE.name}</h3>
       <p>{ABOUT.summary}</p>
-      <h4>Experience</h4>
-      {rows(ABOUT.experience)}
-      <h4>Education</h4>
-      {rows(ABOUT.education)}
+      <h4>Timeline</h4>
+      <ol className="timeline">
+        {ABOUT.timeline.map((item) => (
+          <li key={item.title}>
+            <strong>{item.title}</strong>
+            <span>{item.place}</span>
+            <small>{item.date}</small>
+          </li>
+        ))}
+      </ol>
       <h4>Skills</h4>
       <p>{ABOUT.skills}</p>
       <h4>Achievements</h4>
@@ -331,9 +397,9 @@ export default function App() {
         );
       })}
 
-      <nav className="dock" aria-label="Dock">
+      <Dock>
         {dockItems.map((item) => (
-          <button key={item.id} className="dock-item" aria-label={item.label} title={item.label} onClick={() => openWindow(item.id)}>
+          <button key={item.id} className="dock-item" aria-label={item.label} data-label={item.label} onClick={() => openWindow(item.id)}>
             <span className={`dock-icon ${item.tone}`}>
               <item.icon size={22} aria-hidden="true" />
             </span>
@@ -345,7 +411,9 @@ export default function App() {
           Ask Me
           {windows.ask && <i className="running" />}
         </button>
-      </nav>
+      </Dock>
+
+      <BootScreen />
     </div>
   );
 }

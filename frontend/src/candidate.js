@@ -16,6 +16,7 @@ export const CONTACT_LINKS = [
 export const PROJECTS = [
   {
     id: "smart-ai-assistant",
+    image: "/projects/smart-ai-assistant.webp",
     name: "Smart AI Assistant",
     date: "Jan 2026",
     stack: "HTML, Java, Canvas API, Ollama",
@@ -28,6 +29,7 @@ export const PROJECTS = [
   },
   {
     id: "wanderlust",
+    image: "/projects/wanderlust.webp",
     name: "WanderLust",
     date: "Oct 2025",
     stack: "HTML/CSS, JavaScript, NodeJS, ExpressJS, Mapbox, MongoDB",
@@ -40,6 +42,7 @@ export const PROJECTS = [
   },
   {
     id: "shareplate",
+    image: "/projects/shareplate.webp",
     name: "SharePlate",
     date: "Feb 2025 – Mar 2025",
     stack: "HTML/CSS, JavaScript, ReactJS, ExpressJS, EJS, MongoDB",
@@ -54,12 +57,12 @@ export const PROJECTS = [
 export const ABOUT = {
   summary:
     "Computer Science undergraduate and aspiring Software Engineer with hands-on experience building full-stack web applications, mobile apps and scalable software systems.",
-  experience: [
-    { role: "Software Intern", place: "boAt R&D", date: "Sep 2026 – Present" },
-    { role: "Web Developer", place: "Internship Studio", date: "Feb 2025 – Mar 2025" },
-  ],
-  education: [
-    { role: "B.Tech in Computer Science and Engineering", place: "Kalinga Institute of Industrial Technology", date: "2022 – 2026, CGPA 7.83" },
+  timeline: [
+    { title: "Software Intern", place: "boAt R&D", date: "Sep 2026 – Present" },
+    { title: "Smart AI Assistant", place: "Project", date: "Jan 2026" },
+    { title: "WanderLust", place: "Project", date: "Oct 2025" },
+    { title: "Web Developer", place: "Internship Studio, built SharePlate", date: "Feb 2025 – Mar 2025" },
+    { title: "B.Tech in Computer Science and Engineering", place: "Kalinga Institute of Industrial Technology, CGPA 7.83", date: "2022 – 2026" },
   ],
   skills: "Java, C, Python, JavaScript, SQL, ReactJS, React Native, NodeJS, ExpressJS, Flask, MongoDB, Git",
   achievements: "200+ LeetCode problems solved, and the 50 Days Coding Badge.",
