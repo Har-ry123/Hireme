@@ -1,21 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { analyzeResume, askQuestion } from "./api.js";
+import { DEFAULT_CANDIDATE, HR_QUESTIONS } from "./candidate.js";
 
 const STORAGE_KEY = "hiremeai.state";
 const SLOW_REQUEST_MS = 8000;
 
-const DEFAULT_RESUME = import.meta.env.VITE_DEFAULT_RESUME_ID
-  ? {
-      resumeId: import.meta.env.VITE_DEFAULT_RESUME_ID,
-      name: import.meta.env.VITE_CANDIDATE_NAME || "Candidate",
-      analysis: null,
-      indexed: true,
-    }
-  : null;
+const DEFAULT_RESUME = { ...DEFAULT_CANDIDATE, analysis: null, indexed: true };
 
-function newConversation(messages = []) {
-  return { id: crypto.randomUUID(), title: "New conversation", messages };
+function newConversation(messages = [], title = "New conversation") {
+  return { id: crypto.randomUUID(), title, messages };
 }
 
 function loadState() {
@@ -36,7 +30,7 @@ function suggestionsFor(name) {
     `What are ${first}'s main skills?`,
     `Explain ${first}'s main projects`,
     `What experience does ${first} have?`,
-    `What education does ${first} have?`,
+    "Why should I hire you?",
   ];
 }
 
@@ -95,9 +89,31 @@ function AnalysisCard({ name, analysis, indexed }) {
   );
 }
 
-function Message({ message, resume }) {
+function HrQuestions({ onAsk }) {
+  return (
+    <article className="hr-questions">
+      <p className="eyebrow">HR interview</p>
+      <h3>Ask a common HR question</h3>
+      {HR_QUESTIONS.map((group) => (
+        <section key={group.title}>
+          <h4>{group.title}</h4>
+          <div className="hr-chips">
+            {group.questions.map((question) => (
+              <button key={question} onClick={() => onAsk(question)}>{question}</button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </article>
+  );
+}
+
+function Message({ message, resume, streaming, onAsk }) {
   if (message.role === "analysis") {
     return <AnalysisCard name={resume.name} analysis={resume.analysis} indexed={resume.indexed} />;
+  }
+  if (message.role === "hr") {
+    return <HrQuestions onAsk={onAsk} />;
   }
   if (message.role === "error") {
     return <p className="message-error" role="alert">{message.content}</p>;
@@ -108,7 +124,7 @@ function Message({ message, resume }) {
   return (
     <div className="message-assistant">
       <Logo name={resume.name} />
-      <div className="markdown">
+      <div className={`markdown ${streaming ? "streaming" : ""}`}>
         <Markdown>{message.content}</Markdown>
       </div>
     </div>
@@ -138,9 +154,12 @@ export default function App() {
     }
   }, [state]);
 
+  const lastMessage = active.messages[active.messages.length - 1];
+
   useEffect(() => {
-    threadEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [active.messages.length, asking]);
+    // Smooth scrolling can't keep up with text arriving many times a second
+    threadEnd.current?.scrollIntoView({ behavior: asking ? "auto" : "smooth", block: "end" });
+  }, [active.messages.length, lastMessage?.content, asking]);
 
   function appendMessages(conversationId, messages, title) {
     setState((s) => ({
@@ -153,8 +172,19 @@ export default function App() {
     }));
   }
 
-  function startConversation(messages = []) {
-    const conversation = newConversation(messages);
+  function setStreamedAnswer(conversationId, content, isFirstText) {
+    setState((s) => ({
+      ...s,
+      conversations: s.conversations.map((c) => {
+        if (c.id !== conversationId) return c;
+        const previous = isFirstText ? c.messages : c.messages.slice(0, -1);
+        return { ...c, messages: [...previous, { role: "assistant", content }] };
+      }),
+    }));
+  }
+
+  function startConversation(messages = [], title) {
+    const conversation = newConversation(messages, title);
     setState((s) => ({
       ...s,
       conversations: [conversation, ...s.conversations],
@@ -181,7 +211,7 @@ export default function App() {
 
   async function ask(rawQuestion) {
     const question = rawQuestion.trim();
-    if (!question || asking || !resume) return;
+    if (!question || asking) return;
 
     const title = active.messages.some((m) => m.role === "user") ? undefined : question.slice(0, 40);
     const conversationId = active.id;
@@ -189,9 +219,12 @@ export default function App() {
     setInput("");
     setSidebarOpen(false);
     setAsking(true);
+    let isFirstText = true;
     try {
-      const answer = await askQuestion(resume.resumeId, question);
-      appendMessages(conversationId, [{ role: "assistant", content: answer }]);
+      await askQuestion(resume.resumeId, question, (answer) => {
+        setStreamedAnswer(conversationId, answer, isFirstText);
+        isFirstText = false;
+      });
     } catch (error) {
       appendMessages(conversationId, [{ role: "error", content: error.message }]);
     } finally {
@@ -256,30 +289,14 @@ export default function App() {
     />
   );
 
-  if (!resume) {
-    return (
-      <main className="landing">
-        {hiddenFileInput}
-        <Logo name="H" size="large" />
-        <h1>HireMeAI</h1>
-        <p>Upload a resume to get a scored analysis and an AI representative that answers questions about it.</p>
-        <button className="primary" onClick={() => fileInput.current.click()} disabled={uploading}>
-          {uploading ? "Analyzing resume…" : "Upload resume"}
-        </button>
-        <small>PDF or DOCX, up to 10 MB</small>
-        {slowHint}
-        {uploadError && <p className="message-error" role="alert">{uploadError}</p>}
-      </main>
-    );
-  }
-
   const tools = [
     { label: "Upload new resume", onClick: () => fileInput.current.click(), disabled: uploading },
     {
       label: "Resume analysis",
-      onClick: () => startConversation([{ role: "analysis" }]),
+      onClick: () => startConversation([{ role: "analysis" }], "Resume analysis"),
       hidden: !resume.analysis,
     },
+    { label: "HR questions", onClick: () => startConversation([{ role: "hr" }], "HR questions") },
     {
       label: "Interview questions",
       onClick: () => ask("Suggest five interview questions for this candidate, based on the resume."),
@@ -377,9 +394,15 @@ export default function App() {
           ) : (
             <div className="messages">
               {active.messages.map((message, index) => (
-                <Message key={index} message={message} resume={resume} />
+                <Message
+                  key={index}
+                  message={message}
+                  resume={resume}
+                  streaming={asking && index === active.messages.length - 1}
+                  onAsk={ask}
+                />
               ))}
-              {asking && (
+              {asking && lastMessage?.role !== "assistant" && (
                 <div className="status">
                   <p>Thinking…</p>
                   {!uploading && slowHint}

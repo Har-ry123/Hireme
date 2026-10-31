@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from groq import GroqError
 
 # An explicit path, because load_dotenv() would otherwise search parent folders and could load another project's keys
@@ -12,7 +13,8 @@ load_dotenv(Path(__file__).parent / ".env")
 import llm
 import vector_store
 from document_parser import SUPPORTED_EXTENSIONS, DocumentError, extract_text
-from schemas import AnalyzeResponse, ChatRequest, ChatResponse
+from profile_store import load_profile
+from schemas import AnalyzeResponse, ChatRequest
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +77,7 @@ def analyze_resume(file: UploadFile = File(...)):
         analysis=result.analysis,
     )
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat")
 def chat(request: ChatRequest):
     try:
         chunks = vector_store.search_resume(request.resume_id, request.question)
@@ -90,12 +92,17 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=404, detail="Resume not found. Upload it to /analyze first.")
 
     try:
-        answer = llm.answer_question(request.question, chunks)
+        answer = llm.stream_answer(request.question, chunks, load_profile(request.resume_id))
     except KeyError:
         logger.exception("Missing configuration")
         raise HTTPException(status_code=503, detail="The analysis service is not configured.")
-    except (GroqError, llm.AnalysisError):
+    except GroqError:
         logger.exception("Chat answer failed")
         raise HTTPException(status_code=502, detail="The analysis service failed. Try again.")
 
-    return ChatResponse(answer=answer)
+    # X-Accel-Buffering stops proxies from holding the text back until the answer is complete
+    return StreamingResponse(
+        answer,
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

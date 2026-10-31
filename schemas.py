@@ -46,7 +46,3 @@ class AnalyzeResponse(ResumeAnalysis):
 class ChatRequest(BaseModel):
     resume_id: str
     question: str = Field(min_length=1)
-
-
-class ChatResponse(BaseModel):
-    answer: str

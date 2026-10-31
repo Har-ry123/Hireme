@@ -74,13 +74,17 @@ curl -F "file=@backend/HarryLatest.pdf" http://127.0.0.1:8000/analyze
 
 ### `POST /chat`
 
-Answers a question using the parts of an analyzed resume that best match it.
+Answers a question using the parts of an analyzed resume that best match it, plus that candidate's HR profile if there is one. The answer streams back as plain text while it's being written, so use `curl -N` to watch it arrive.
 
 ```bash
 curl -H "Content-Type: application/json" -d "{\"resume_id\": \"3f1c...\", \"question\": \"What are the candidate's main skills?\"}" http://127.0.0.1:8000/chat
 ```
 
-Returns `{"answer": "..."}`, or 404 if that `resume_id` hasn't been stored.
+Returns 404 if that `resume_id` hasn't been stored.
+
+### HR profile
+
+A resume doesn't cover questions like hometown, weakness or salary expectations. To answer them, fill in `profiles/<resume_id>.md`. The answers apply only to that resume, and blank lines get "I don't have enough information to answer that." rather than a guess. Anything you write there is public if the repo is public.
 
 ## Project layout
 
@@ -91,6 +95,8 @@ Returns `{"answer": "..."}`, or 404 if that `resume_id` hasn't been stored.
 | `llm.py` | Groq calls |
 | `vector_store.py` | Embeddings (fastembed) and Qdrant storage and search |
 | `schemas.py` | Pydantic request and response models |
+| `profile_store.py`, `profiles/` | The candidate's own HR answers |
+| `config.py` | Reads required settings |
 | `frontend/` | React chat interface (Vite) |
 | `backend/main.py` | Earlier prototype, not used by the app |
 
@@ -115,4 +121,6 @@ The backend runs on Render and the frontend on Vercel.
 | Framework Preset | Vite |
 | Environment | `VITE_API_URL` set to your Render URL |
 
-To open the site on one resume so that visitors can chat without uploading, also set `VITE_DEFAULT_RESUME_ID` to the `resume_id` from `POST /analyze`, and `VITE_CANDIDATE_NAME` to the name to show. Redeploy after changing any `VITE_` variable, because they're built into the site.
+Redeploy after changing `VITE_API_URL`, because it's built into the site.
+
+The site opens on the resume set in `frontend/src/candidate.js`. That resume must be uploaded once to `POST /analyze` on the deployed backend, so that it's stored in Qdrant.
