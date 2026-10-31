@@ -2,27 +2,6 @@
 export const DEFAULT_CANDIDATE = {
   resumeId: "c4c83b44-220e-5e37-a8f5-e1a7b21c3b6f",
   name: "Hariom Jha",
-  tagline: "Software Intern at boAt R&D, building full-stack web and mobile apps.",
-  highlights: [
-    { value: 200, suffix: "+", label: "LeetCode problems solved" },
-    { value: 35, suffix: "%", label: "faster page load delivered" },
-    { value: 500, suffix: "+", label: "live records managed" },
-    { value: 2, suffix: "", label: "software internships" },
-  ],
-  skills: [
-    "React Native",
-    "ReactJS",
-    "NodeJS",
-    "ExpressJS",
-    "MongoDB",
-    "Java",
-    "Python",
-    "JavaScript",
-    "Flask",
-    "SQL",
-    "RESTful APIs",
-    "Data Structures & Algorithms",
-  ],
 };
 
 export const HR_QUESTIONS = [
