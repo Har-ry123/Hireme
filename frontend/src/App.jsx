@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { FileText, Folder, Mail, Sparkles, UserRound, Wifi } from "lucide-react";
 import { askQuestion } from "./api.js";
-import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS, RESUME_URL } from "./candidate.js";
+import { ABOUT, CONTACT_LINKS, DEFAULT_CANDIDATE, PROJECTS } from "./candidate.js";
 import Chat from "./Chat.jsx";
+import ResumeWindow from "./ResumeWindow.jsx";
 import Window from "./Window.jsx";
 
 const STORAGE_KEY = "hiremeai.chat";
@@ -16,6 +17,7 @@ const SIZES = {
   about: { width: 540, height: 500 },
   contact: { width: 420, height: 330 },
   project: { width: 520, height: 380 },
+  resume: { width: 640, height: 760 },
 };
 
 function loadMessages() {
@@ -233,6 +235,7 @@ export default function App() {
     { id: "projects", label: "Projects", icon: Folder, tone: "blue" },
     { id: "about", label: "About", icon: UserRound, tone: "violet" },
     { id: "contact", label: "Contact", icon: Mail, tone: "green" },
+    { id: "resume", label: "Resume", icon: FileText, tone: "amber" },
   ];
 
   function windowContent(id) {
@@ -246,6 +249,7 @@ export default function App() {
     if (id === "projects") return { title: "Projects", body: <ProjectsWindow onOpen={openWindow} /> };
     if (id === "about") return { title: "About", body: <AboutWindow /> };
     if (id === "contact") return { title: "Contact", body: <ContactWindow /> };
+    if (id === "resume") return { title: "Resume.pdf", body: <ResumeWindow /> };
     const project = PROJECTS.find((p) => `project:${p.id}` === id);
     return { title: project.name, body: <ProjectWindow project={project} /> };
   }
@@ -260,7 +264,7 @@ export default function App() {
           <button className="menu-title" onClick={() => openWindow("about")}>Hariom's Portfolio</button>
           <button onClick={() => openWindow("projects")}>Projects</button>
           <button onClick={() => openWindow("contact")}>Contact</button>
-          <a href={RESUME_URL} target="_blank" rel="noreferrer">Resume</a>
+          <button onClick={() => openWindow("resume")}>Resume</button>
         </div>
         <div className="menu-right">
           <Wifi size={14} aria-hidden="true" />
@@ -281,10 +285,10 @@ export default function App() {
             <span>{project.name}</span>
           </button>
         ))}
-        <a className="icon" href={RESUME_URL} target="_blank" rel="noreferrer">
+        <button className="icon" onClick={() => openWindow("resume")}>
           <FileText size={44} strokeWidth={1.2} fill="#f4f6fb" color="#9aa7c7" aria-hidden="true" />
           <span>Resume.pdf</span>
-        </a>
+        </button>
       </div>
 
       {Object.entries(windows).map(([id, win]) => {
@@ -314,11 +318,6 @@ export default function App() {
             {windows[item.id] && <i className="running" />}
           </button>
         ))}
-        <a className="dock-item" href={RESUME_URL} target="_blank" rel="noreferrer" aria-label="Resume" title="Resume">
-          <span className="dock-icon amber">
-            <FileText size={22} aria-hidden="true" />
-          </span>
-        </a>
         <button className="dock-ask" onClick={() => openWindow("ask")}>
           <Sparkles size={18} aria-hidden="true" />
           Ask Me

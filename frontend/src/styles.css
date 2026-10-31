@@ -696,6 +696,54 @@ a {
   overflow-wrap: anywhere;
 }
 
+.resume {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: #3a3c44;
+}
+
+.resume-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  background: var(--window-solid);
+}
+
+.resume-bar a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 7px;
+  padding: 5px 10px;
+  background: var(--blue);
+  color: #06233f;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.resume-note {
+  margin: 0;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.resume-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.resume-pages canvas {
+  width: 100%;
+  background: #fff;
+}
+
 @media (max-width: 1100px) {
   .hero {
     right: 40px;
