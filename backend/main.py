@@ -1,191 +1,113 @@
-import json
-import os
+import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from groq import Groq
-from pydantic import BaseModel
-from pypdf import PdfReader
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from groq import GroqError, RateLimitError
 
-load_dotenv()
+# An explicit path, because load_dotenv() would otherwise search parent folders and could load another project's keys
+load_dotenv(Path(__file__).parent.parent / ".env")
 
-client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+import llm
+import vector_store
+from document_parser import SUPPORTED_EXTENSIONS, DocumentError, extract_text
+from profile_store import load_profile
+from schemas import AnalyzeResponse, ChatRequest
+
+logger = logging.getLogger(__name__)
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+RATE_LIMIT_MESSAGE = "The AI has reached its usage limit for now. Please try again later."
+
+app = FastAPI(title="HireMeAI API")
+
+# Enable CORS so your Vercel frontend can talk to this Render backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace "*" with your Vercel frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-model = "openai/gpt-oss-120b"
-app=FastAPI()
-
-
-
-#parse resume
-class Experience(BaseModel):
-    company: str | None = None
-    role: str | None = None
-    duration: str | None = None
-    description: str | None = None
-    skills_used: list[str] = []
-
-class Resume(BaseModel):
-    name: str | None = None
-    email: str | None = None
-    phone: str | None = None
-
-    total_experience_years: float | None = None
-
-    skills: list[str] = []
-    experiences: list[Experience] = []
-    education: list[str] = []
-    projects: list[str] = []
-    certifications: list[str] = []
-resume_schema = Resume.model_json_schema()
-
-class ChatRequest(BaseModel):
-    question: str
-
-def ask_candidate(question: str, resume: Resume):
-
-    system_prompt = f"""
-You are an AI assistant representing a job candidate.
-
-Below is everything you know about the candidate.
-
-{resume.model_dump_json(indent=2)}
-
-Rules:
-
-1. Answer only using this information.
-
-2. Never hallucinate.
-
-3. If information is unavailable,
-say
-
-"I don't have enough information to answer that."
-
-4. Be professional.
-
-5. Answer as if HR is interviewing this candidate.
-"""
-
-    response = client.chat.completions.create(
-
-        model=model,
-
-        messages=[
-
-            {
-                "role":"system",
-                "content":system_prompt
-            },
-
-            {
-                "role":"user",
-                "content":question
-            }
-
-        ]
-
-    )
-
-    return response.choices[0].message.content
-def parse_resume(resume_text):
-    system_prompt = f"""
-    You are an expert resume parser.
-
-    Extract information from the resume based on its meaning,
-    not only based on exact section headings.
-
-    Different resumes may use different headings.
-
-    For example:
-    - Experience
-    - Professional Experience
-    - Work History
-    - Employment
-    - Internships
-
-    These may all contain relevant experience.
-
-    Skills may also appear in the skills section, work experience,
-    internships or projects.
-
-    Return ONLY valid JSON matching this schema:
-
-    {resume_schema}
-
-    Important rules:
-
-    1. Do not invent information.
-    2. If a value is not available, return null.
-    3. If a list has no information, return an empty list.
-    4. Include internships inside experiences.
-    5. Extract skills mentioned across the entire resume.
-    """
-    user_prompt = f"""
-    Parse the following resume:
-
-    {resume_text}
-    """
-    message_system={
-        "role" : "system",
-        "content" : system_prompt
-    }
-    message_user={
-        "role" : "user",
-        "content" : user_prompt
-    }
-    messages=[message_system, message_user]
-    response_format={
-        "type": "json_object"
-    }
-    response=client.chat.completions.create(model=model, messages=messages, response_format=response_format)
-    raw_output = response.choices[0].message.content
-    data = json.loads(raw_output)
-    resume = Resume(**data)
-    return resume
-
-#pdf extraction
-def read_pdf(file_path: Path):
-
-    reader = PdfReader(file_path)
-
-    text = ""
-
-    for page in reader.pages:
-
-        page_text = page.extract_text()
-
-        if page_text:
-            text += page_text + "\n"
-
-    return text
-
 @app.get("/")
-def home():
-    # resume_text=read_pdf(Path("my_resume.pdf"))
-    # resume=parse_resume(resume_text)
-    return {
-        "message" : "Ye home page hai"
-    }
-# chatgpt.cpom
-#chatgot.com/aceeddferre5e
+def read_root():
+    return {"message": "Welcome to HireMeAI Backend!"}
 
+# Plain def, not async: parsing, Groq and Qdrant all block, so FastAPI runs these in a thread pool
+@app.post("/analyze", response_model=AnalyzeResponse)
+def analyze_resume(file: UploadFile = File(...)):
+    filename = file.filename or ""
+    if not filename.lower().endswith(SUPPORTED_EXTENSIONS):
+        raise HTTPException(status_code=415, detail="Unsupported file type. Upload a PDF or DOCX.")
+
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File is larger than the 10 MB limit.")
+
+    try:
+        text = extract_text(filename, data)
+    except DocumentError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    try:
+        result = llm.analyze_resume_text(text)
+    except KeyError:
+        logger.exception("Missing configuration")
+        raise HTTPException(status_code=503, detail="The analysis service is not configured.")
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail=RATE_LIMIT_MESSAGE)
+    except (GroqError, llm.AnalysisError):
+        logger.exception("Resume analysis failed")
+        raise HTTPException(status_code=502, detail="The analysis service failed. Try again.")
+
+    resume_id = vector_store.resume_id_for(data)
+    indexed = True
+    try:
+        vector_store.store_resume(resume_id, text)
+    except Exception:
+        # The analysis is what was asked for, so a vector store outage shouldn't throw it away
+        logger.exception("Could not index resume %s", resume_id)
+        indexed = False
+
+    return AnalyzeResponse(
+        resume_id=resume_id,
+        filename=filename,
+        indexed=indexed,
+        resume=result.resume,
+        analysis=result.analysis,
+    )
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    resume_text=read_pdf(Path("my_resume.pdf"))
-    resume=parse_resume(resume_text)
-    answer=ask_candidate(request.question, resume)
-    return {
-        "answer": answer
-    }
+    try:
+        chunks = vector_store.search_resume(request.resume_id, request.question)
+    except KeyError:
+        logger.exception("Missing configuration")
+        raise HTTPException(status_code=503, detail="The search service is not configured.")
+    except Exception:
+        logger.exception("Could not search resume %s", request.resume_id)
+        raise HTTPException(status_code=502, detail="The search service failed. Try again.")
 
+    if not chunks:
+        raise HTTPException(status_code=404, detail="Resume not found. Upload it to /analyze first.")
 
+    try:
+        answer = llm.stream_answer(request.question, chunks, load_profile(request.resume_id))
+    except KeyError:
+        logger.exception("Missing configuration")
+        raise HTTPException(status_code=503, detail="The analysis service is not configured.")
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail=RATE_LIMIT_MESSAGE)
+    except GroqError:
+        logger.exception("Chat answer failed")
+        raise HTTPException(status_code=502, detail="The analysis service failed. Try again.")
 
-
-# youtube.com
-# youtube.com/padho_with_pratyush
-# youtube.com/padho_with_pratyush/videos
-# youtube.com/padho_with_pratyush/playlists
+    # X-Accel-Buffering stops proxies from holding the text back until the answer is complete
+    return StreamingResponse(
+        answer,
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

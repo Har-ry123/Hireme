@@ -25,7 +25,7 @@ Fill in `.env`:
 ## Run
 
 ```bash
-uv run uvicorn main:app --reload
+uv run uvicorn main:app --app-dir backend --reload
 ```
 
 The API runs at http://127.0.0.1:8000, with interactive docs at http://127.0.0.1:8000/docs.
@@ -85,21 +85,20 @@ Returns 404 if that `resume_id` hasn't been stored.
 
 ### HR profile
 
-A resume doesn't cover questions like hometown, weakness or salary expectations. To answer them, fill in `profiles/<resume_id>.md`. The answers apply only to that resume. Blank lines still get an answer: general questions, such as strengths or motivation, are reasoned from the resume. Personal facts, such as hometown or salary, and stories, such as a past conflict, are never made up: they get a general answer that points to the contact email. Anything you write there is public if the repo is public.
+A resume doesn't cover questions like hometown, weakness or salary expectations. To answer them, fill in `backend/profiles/<resume_id>.md`. The answers apply only to that resume. Blank lines still get an answer: general questions, such as strengths or motivation, are reasoned from the resume. Personal facts, such as hometown or salary, and stories, such as a past conflict, are never made up: they get a general answer that points to the contact email. Anything you write there is public if the repo is public.
 
 ## Project layout
 
 | File | Purpose |
 | --- | --- |
-| `main.py` | App entry point and routes |
-| `document_parser.py` | PDF and DOCX text extraction |
-| `llm.py` | Groq calls |
-| `vector_store.py` | Embeddings (fastembed) and Qdrant storage and search |
-| `schemas.py` | Pydantic request and response models |
-| `profile_store.py`, `profiles/` | The candidate's own HR answers |
-| `config.py` | Reads required settings |
+| `backend/main.py` | App entry point and routes |
+| `backend/document_parser.py` | PDF and DOCX text extraction |
+| `backend/llm.py` | Groq calls |
+| `backend/vector_store.py` | Embeddings (fastembed) and Qdrant storage and search |
+| `backend/schemas.py` | Pydantic request and response models |
+| `backend/profile_store.py`, `backend/profiles/` | The candidate's own HR answers |
+| `backend/config.py` | Reads required settings |
 | `frontend/` | React chat interface (Vite) |
-| `backend/main.py` | Earlier prototype, not used by the app |
 
 ## Deployment
 
@@ -109,8 +108,8 @@ The backend runs on Render and the frontend on Vercel.
 
 | Setting | Value |
 | --- | --- |
-| Root Directory | Leave blank, so that the root `main.py` runs and not `backend/main.py` |
-| Build Command | `pip install -r backend/requirements.txt` |
+| Root Directory | `backend` |
+| Build Command | `pip install -r requirements.txt` |
 | Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | Environment | `GROQ_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY` |
 
