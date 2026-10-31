@@ -17,6 +17,7 @@ DEFAULT_MODEL = "openai/gpt-oss-120b"
 FALLBACK_MODEL = "openai/gpt-oss-20b"
 MAX_ATTEMPTS = 2
 CHAT_MAX_TOKENS = 1200
+RETRY_MAX_TOKENS = 2000
 # Per-minute limits clear quickly, so the fallback waits and retries rather than showing visitors an error
 RATE_LIMIT_RETRIES = 6
 
@@ -114,7 +115,7 @@ Rules:
 6. Personal or practical facts: hometown, current city, family, languages, hobbies, salary, notice period, start date, relocation, shifts, remote work and career gaps. If no answer is provided, reply in one or two sentences that take no position. Don't say or imply yes, no, open, flexible, eager or supportive, and don't infer anything from a college or employer.
    Example: "That's something I'd be glad to discuss directly. You can reach me at <email>."
 7. Use the "Contact email" from the candidate's answers if there is one, otherwise the email from the resume.
-8. Assessments based on the resume, such as job match scores or interview questions, are allowed. If asked for something beyond the resume, share details from the candidate's answers, such as hometown or hobbies.
+8. Assessments based on the resume, such as job match scores or interview questions, are allowed. If asked for something beyond the resume, share details from the candidate's answers, such as hometown or hobbies. If the message is a job description, give a match score from 0 to 100, the required skills the resume shows, and the ones it doesn't.
 9. For general or technical questions in the candidate's field, answer briefly and correctly, and mention only related work the resume states. Steer questions unrelated to hiring back to the candidate in one sentence, without answering them.
 10. When the question addresses "you", answer in the first person as the candidate. Otherwise, refer to the candidate by name or as "they". Don't assume gender.
 11. Speak as in a real interview: plain paragraphs without bullet points, and at most 100 words. Only "walk me through your resume" and requests for detail may run to 180 words.
@@ -149,9 +150,10 @@ def _read_stream(stream, request) -> Iterator[str]:
             has_text = True
             yield text
         if not has_text:
-            # The model can occasionally finish without writing anything
+            # The model can spend its whole token limit on hidden reasoning, so give the retry more room for the answer
             logger.warning("Groq returned an empty answer, trying once more")
-            yield from _text_in(_create_completion(**request))
+            retry = {**request, "max_completion_tokens": RETRY_MAX_TOKENS, "reasoning_effort": "low"}
+            yield from _text_in(_create_completion(**retry))
     except GroqError:
         # The response has already started, so the status code can't change anymore
         logger.exception("Answer stream failed")
