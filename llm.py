@@ -6,6 +6,7 @@ from functools import lru_cache
 from groq import Groq
 from pydantic import ValidationError
 
+from config import require_env
 from schemas import ResumeAnalysis
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class AnalysisError(RuntimeError):
 
 @lru_cache
 def get_client() -> Groq:
-    return Groq(api_key=os.environ["GROQ_API_KEY"])
+    return Groq(api_key=require_env("GROQ_API_KEY"))
 
 
 def get_model() -> str:

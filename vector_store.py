@@ -1,10 +1,11 @@
 import hashlib
-import os
 import uuid
 from functools import lru_cache
 
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient, models
+
+from config import require_env
 
 COLLECTION = "resumes"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
@@ -31,7 +32,7 @@ def get_embedder() -> TextEmbedding:
 
 @lru_cache
 def get_client() -> QdrantClient:
-    client = QdrantClient(url=os.environ["QDRANT_URL"], api_key=os.environ["QDRANT_API_KEY"])
+    client = QdrantClient(url=require_env("QDRANT_URL"), api_key=require_env("QDRANT_API_KEY"))
     if not client.collection_exists(COLLECTION):
         client.create_collection(
             collection_name=COLLECTION,
